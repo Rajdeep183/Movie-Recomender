@@ -8,17 +8,52 @@ try:
     from sklearn.metrics.pairwise import cosine_similarity
     SKLEARN_AVAILABLE = True
 except ImportError as e:
-    print(f"Error importing scikit-learn: {e}")
+    print(f"Warning: scikit-learn not available ({e}). Using basic recommendation fallback.")
     SKLEARN_AVAILABLE = False
-    # Create dummy classes for fallback
+    
+    # Create a basic fallback recommendation system
     class TfidfVectorizer:
         def __init__(self, *args, **kwargs):
-            pass
+            self.vocabulary = {}
+        
         def fit_transform(self, texts):
-            return None
+            # Simple word frequency approach as fallback
+            import re
+            from collections import Counter
+            
+            # Build vocabulary from all texts
+            all_words = []
+            for text in texts:
+                words = re.findall(r'\b\w+\b', str(text).lower())
+                all_words.extend(words)
+            
+            # Get top 1000 most common words
+            word_counts = Counter(all_words)
+            top_words = [word for word, count in word_counts.most_common(1000)]
+            self.vocabulary = {word: i for i, word in enumerate(top_words)}
+            
+            # Create simple term frequency matrix
+            matrix = []
+            for text in texts:
+                words = re.findall(r'\b\w+\b', str(text).lower())
+                word_counts = Counter(words)
+                vector = [word_counts.get(word, 0) for word in top_words]
+                matrix.append(vector)
+            
+            return np.array(matrix)
     
     def cosine_similarity(matrix):
-        return None
+        # Simple cosine similarity implementation
+        if matrix.shape[0] == 0:
+            return np.array([[]])
+        
+        # Normalize the matrix
+        norms = np.sqrt(np.sum(matrix * matrix, axis=1))
+        norms[norms == 0] = 1  # Avoid division by zero
+        normalized = matrix / norms[:, np.newaxis]
+        
+        # Compute cosine similarity
+        return np.dot(normalized, normalized.T)
 
 class MovieRecommender:
     def __init__(self):
@@ -30,11 +65,6 @@ class MovieRecommender:
     def load_and_process_data(self, movies_path, credits_path):
         """Load and process the movie data"""
         try:
-            # Check if scikit-learn is available
-            if not SKLEARN_AVAILABLE:
-                print("Scikit-learn is not available. Cannot create recommendations.")
-                return False
-            
             # Load the data
             print(f"Loading movies from: {movies_path}")
             self.movies_df = pd.read_csv(movies_path)
@@ -106,7 +136,11 @@ class MovieRecommender:
             self.movies_df['combined_features'] = self.movies_df['combined_features'].apply(self._clean_text)
             
             # Create TF-IDF matrix
-            print("Creating TF-IDF matrix...")
+            if SKLEARN_AVAILABLE:
+                print("Creating TF-IDF matrix with scikit-learn...")
+            else:
+                print("Creating TF-IDF matrix with fallback implementation...")
+            
             tfidf = TfidfVectorizer(max_features=5000, stop_words='english')
             tfidf_matrix = tfidf.fit_transform(self.movies_df['combined_features'])
             
@@ -117,7 +151,11 @@ class MovieRecommender:
             # Get movie titles
             self.movie_titles = self.movies_df['title'].tolist()
             
-            print(f"Successfully processed {len(self.movie_titles)} movies")
+            if SKLEARN_AVAILABLE:
+                print(f"✅ Successfully processed {len(self.movie_titles)} movies with scikit-learn")
+            else:
+                print(f"✅ Successfully processed {len(self.movie_titles)} movies with fallback system")
+            
             return True
             
         except Exception as e:
@@ -139,9 +177,6 @@ class MovieRecommender:
     def get_recommendations(self, movie_title, num_recommendations=5):
         """Get movie recommendations"""
         try:
-            if not SKLEARN_AVAILABLE:
-                return []
-                
             if movie_title not in self.movie_titles:
                 return []
             

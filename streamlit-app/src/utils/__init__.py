@@ -36,42 +36,94 @@ class MovieRecommender:
                 return False
             
             # Load the data
+            print(f"Loading movies from: {movies_path}")
             self.movies_df = pd.read_csv(movies_path)
+            print(f"Loaded {len(self.movies_df)} movies")
+            
+            print(f"Loading credits from: {credits_path}")
             self.credits_df = pd.read_csv(credits_path)
+            print(f"Loaded {len(self.credits_df)} credits")
             
-            # Merge the dataframes
-            self.movies_df = self.movies_df.merge(self.credits_df, on='title')
+            # Check if we have the required columns
+            required_movie_cols = ['title', 'overview', 'genres', 'keywords']
+            required_credit_cols = ['title', 'cast', 'crew']
             
-            # Keep only necessary columns
-            features = ['title', 'overview', 'genres', 'keywords', 'cast', 'crew']
-            self.movies_df = self.movies_df[features].dropna()
+            missing_movie_cols = [col for col in required_movie_cols if col not in self.movies_df.columns]
+            missing_credit_cols = [col for col in required_credit_cols if col not in self.credits_df.columns]
+            
+            if missing_movie_cols:
+                print(f"Missing required movie columns: {missing_movie_cols}")
+                return False
+            if missing_credit_cols:
+                print(f"Missing required credit columns: {missing_credit_cols}")
+                return False
+            
+            # Merge the dataframes on title (inner join to keep only matching titles)
+            print("Merging dataframes...")
+            merged_df = self.movies_df.merge(self.credits_df, on='title', how='inner')
+            print(f"After merge: {len(merged_df)} movies with complete data")
+            
+            if len(merged_df) == 0:
+                print("No movies found after merging. Using movies data without credits.")
+                # Fallback: use movies data without credits
+                self.movies_df = self.movies_df.copy()
+                self.movies_df['cast'] = ''
+                self.movies_df['crew'] = ''
+            else:
+                self.movies_df = merged_df
+            
+            # Keep only necessary columns and handle missing data
+            available_features = []
+            for feature in ['title', 'overview', 'genres', 'keywords', 'cast', 'crew']:
+                if feature in self.movies_df.columns:
+                    available_features.append(feature)
+            
+            self.movies_df = self.movies_df[available_features].copy()
+            
+            # Fill missing values
+            for col in ['overview', 'genres', 'keywords', 'cast', 'crew']:
+                if col in self.movies_df.columns:
+                    self.movies_df[col] = self.movies_df[col].fillna('')
+            
+            # Remove rows with empty titles
+            self.movies_df = self.movies_df[self.movies_df['title'].notna() & (self.movies_df['title'] != '')]
+            
+            print(f"Final dataset: {len(self.movies_df)} movies")
+            
+            if len(self.movies_df) == 0:
+                print("No valid movies remaining after processing")
+                return False
             
             # Create combined features
-            self.movies_df['combined_features'] = (
-                self.movies_df['overview'].fillna('') + ' ' +
-                self.movies_df['genres'].fillna('') + ' ' +
-                self.movies_df['keywords'].fillna('') + ' ' +
-                self.movies_df['cast'].fillna('') + ' ' +
-                self.movies_df['crew'].fillna('')
-            )
+            feature_columns = [col for col in ['overview', 'genres', 'keywords', 'cast', 'crew'] 
+                             if col in self.movies_df.columns]
+            
+            self.movies_df['combined_features'] = ''
+            for col in feature_columns:
+                self.movies_df['combined_features'] += ' ' + self.movies_df[col].astype(str)
             
             # Clean and process the text
             self.movies_df['combined_features'] = self.movies_df['combined_features'].apply(self._clean_text)
             
             # Create TF-IDF matrix
+            print("Creating TF-IDF matrix...")
             tfidf = TfidfVectorizer(max_features=5000, stop_words='english')
             tfidf_matrix = tfidf.fit_transform(self.movies_df['combined_features'])
             
             # Calculate cosine similarity
+            print("Calculating similarity matrix...")
             self.similarity_matrix = cosine_similarity(tfidf_matrix)
             
             # Get movie titles
             self.movie_titles = self.movies_df['title'].tolist()
             
+            print(f"Successfully processed {len(self.movie_titles)} movies")
             return True
             
         except Exception as e:
             print(f"Error processing data: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def _clean_text(self, text):

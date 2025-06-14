@@ -470,7 +470,7 @@ st.markdown(create_search_dropdown_netflix(), unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
-    """Load data from CSV files with robust path resolution"""
+    """Load data from CSV files with robust path resolution and fallback options"""
     
     # Define possible paths for CSV files
     possible_paths = [
@@ -486,37 +486,54 @@ def load_data():
         Path("recomender"),
     ]
     
-    # First, try to find the CSV files without showing debug info
-    for data_dir in possible_paths:
-        movies_csv = data_dir / "tmdb_5000_movies.csv"
-        credits_csv = data_dir / "tmdb_5000_credits.csv"
-        
-        if movies_csv.exists() and credits_csv.exists():
-            return str(movies_csv), str(credits_csv)
+    # Try different file combinations (full dataset vs sample)
+    file_combinations = [
+        ("tmdb_5000_movies.csv", "tmdb_5000_credits.csv"),  # Full dataset
+        ("sample_movies.csv", "sample_credits.csv"),        # Sample dataset
+    ]
     
-    # If not found, show debug information
+    for data_dir in possible_paths:
+        for movies_file, credits_file in file_combinations:
+            movies_csv = data_dir / movies_file
+            credits_csv = data_dir / credits_file
+            
+            if movies_csv.exists() and credits_csv.exists():
+                # Check if files are not empty
+                try:
+                    if movies_csv.stat().st_size > 1000 and credits_csv.stat().st_size > 1000:
+                        if movies_file.startswith("sample"):
+                            st.info(f"✅ Using sample dataset ({movies_file}, {credits_file})")
+                        return str(movies_csv), str(credits_csv)
+                except Exception:
+                    continue
+    
+    # If no files found, show debug information
     st.error("🔍 **Debug Information - CSV Files Not Found**")
     st.write(f"**Current working directory:** `{Path.cwd()}`")
     st.write(f"**App file location:** `{Path(__file__).parent}`")
     
     # Check each path with detailed info
-    st.write("**Checking these paths:**")
+    st.write("**Checked these paths and files:**")
     for i, data_dir in enumerate(possible_paths, 1):
-        movies_csv = data_dir / "tmdb_5000_movies.csv"
-        credits_csv = data_dir / "tmdb_5000_credits.csv"
-        
-        st.write(f"{i}. `{data_dir}` - Movies: {movies_csv.exists()}, Credits: {credits_csv.exists()}")
+        st.write(f"{i}. `{data_dir}`")
+        for movies_file, credits_file in file_combinations:
+            movies_csv = data_dir / movies_file
+            credits_csv = data_dir / credits_file
+            st.write(f"   - {movies_file}: {movies_csv.exists()} | {credits_file}: {credits_csv.exists()}")
     
     # List all CSV files in the project
     st.write("**All CSV files found in the project:**")
     try:
-        current_files = list(Path("/mount/src/recomender").rglob("*.csv"))
-        if not current_files:
-            current_files = list(Path.cwd().rglob("*.csv"))
+        search_paths = [Path("/mount/src/recomender"), Path.cwd()]
+        all_csv_files = []
+        for search_path in search_paths:
+            if search_path.exists():
+                all_csv_files.extend(list(search_path.rglob("*.csv")))
         
-        if current_files:
-            for file in current_files:
-                st.write(f"  - `{file}`")
+        if all_csv_files:
+            for file in all_csv_files:
+                file_size = file.stat().st_size if file.exists() else 0
+                st.write(f"  - `{file}` ({file_size:,} bytes)")
         else:
             st.write("  - No CSV files found")
     except Exception as e:

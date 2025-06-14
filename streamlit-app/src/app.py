@@ -549,14 +549,48 @@ def initialize_recommender():
         movies_path, credits_path = load_data()
         
         if movies_path and credits_path:
-            success = recommender.load_and_process_data(movies_path, credits_path)
-            if success:
-                return recommender, None
-            else:
-                return None, "Failed to process movie data"
+            # Show progress in Streamlit
+            progress_container = st.empty()
+            with progress_container.container():
+                st.info("🔄 Initializing movie recommender system...")
+                
+                # Capture the output from the recommender
+                import io
+                import sys
+                from contextlib import redirect_stdout, redirect_stderr
+                
+                # Create string buffers to capture output
+                stdout_buffer = io.StringIO()
+                stderr_buffer = io.StringIO()
+                
+                success = False
+                with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                    success = recommender.load_and_process_data(movies_path, credits_path)
+                
+                # Get the captured output
+                stdout_output = stdout_buffer.getvalue()
+                stderr_output = stderr_buffer.getvalue()
+                
+                # Show the debug output in Streamlit
+                if stdout_output:
+                    st.write("**Debug Output:**")
+                    st.code(stdout_output, language="text")
+                
+                if stderr_output:
+                    st.write("**Error Output:**")
+                    st.code(stderr_output, language="text")
+                
+                if success:
+                    progress_container.empty()
+                    return recommender, None
+                else:
+                    return None, f"Failed to process movie data. Debug info shown above."
         else:
             return None, "Could not find CSV files in recomender folder"
     except Exception as e:
+        st.error(f"Exception in initialize_recommender: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc(), language="text")
         return None, f"Error: {str(e)}"
 
 def display_movie_recommendations(recommendations, selected_movie):

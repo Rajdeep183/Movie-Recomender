@@ -956,13 +956,12 @@ def main():
             with cols[i % 3]:
                 st.markdown(create_movie_card_netflix(movie), unsafe_allow_html=True)
 
- st.markdown(
-        "<div style='text-align: center; color: #fff; margin-top: 48px; font-size: 1.1em;'>"
-        "Made with <span style='color: #e50914; font-size: 1.3em;'>❤️</span> by <b>Rajdeep Roy</b>"
-        "</div>", 
-        unsafe_allow_html=True
-    )
-
+st.markdown(
+    "<div style='text-align: center; color: #fff; margin-top: 48px; font-size: 1.1em;'>"
+    "Made with <span style='color: #e50914; font-size: 1.3em;'>❤️</span> by <b>Rajdeep Roy</b>"
+    "</div>", 
+    unsafe_allow_html=True
+)
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,6 @@
+# MovieFlix - AI Movie Recommender System
+# Last updated: June 14, 2025 - Fixed scikit-learn dependency issues
+
 import streamlit as st
 import pandas as pd
 import numpy as np

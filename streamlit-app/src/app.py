@@ -956,5 +956,13 @@ def main():
             with cols[i % 3]:
                 st.markdown(create_movie_card_netflix(movie), unsafe_allow_html=True)
 
+     st.markdown(
+            "<div style='text-align: center; color: #000;'>"
+            
+            "Made with ❤️ by Rajdeep Roy for sustainable agriculture"
+            "</div>", 
+            unsafe_allow_html=True
+        )
+
 if __name__ == "__main__":
     main()

@@ -470,45 +470,57 @@ st.markdown(create_search_dropdown_netflix(), unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
-    """Load data from CSV files with improved path resolution"""
-    # Try multiple possible paths for the CSV files
+    """Load data from CSV files with robust path resolution"""
+    
+    # Define possible paths for CSV files
     possible_paths = [
-        # Original path (relative to app.py)
-        Path(__file__).parent.parent.parent / "recomender",
-        # Path for Streamlit Cloud (from root)
+        # Streamlit Cloud path (most likely)
         Path("/mount/src/recomender/recomender"),
-        # Local development path
+        # Alternative Streamlit Cloud paths
+        Path("/mount/src/recomender"),
+        # Local development paths
+        Path(__file__).parent.parent.parent / "recomender",
+        Path("../../../recomender"),
         Path("../../recomender"),
-        # Alternative path
-        Path(__file__).parent.parent / "recomender",
-        # Current directory
         Path("./recomender"),
-        # Root level recomender folder
-        Path("recomender")
+        Path("recomender"),
     ]
     
-    # Debug: Print current working directory and file location
-    st.write(f"Current working directory: {Path.cwd()}")
-    st.write(f"App file location: {Path(__file__).parent}")
-    
+    # First, try to find the CSV files without showing debug info
     for data_dir in possible_paths:
         movies_csv = data_dir / "tmdb_5000_movies.csv"
         credits_csv = data_dir / "tmdb_5000_credits.csv"
         
-        st.write(f"Checking path: {data_dir}")
-        st.write(f"Movies CSV exists: {movies_csv.exists()}")
-        st.write(f"Credits CSV exists: {credits_csv.exists()}")
-        
         if movies_csv.exists() and credits_csv.exists():
-            st.success(f"✅ Found CSV files at: {data_dir}")
             return str(movies_csv), str(credits_csv)
     
-    # If no files found, list what's actually available
-    st.error("❌ Could not find CSV files in any expected location")
-    st.write("Available files in current directory:")
-    current_files = list(Path.cwd().rglob("*.csv"))
-    for file in current_files:
-        st.write(f"  - {file}")
+    # If not found, show debug information
+    st.error("🔍 **Debug Information - CSV Files Not Found**")
+    st.write(f"**Current working directory:** `{Path.cwd()}`")
+    st.write(f"**App file location:** `{Path(__file__).parent}`")
+    
+    # Check each path with detailed info
+    st.write("**Checking these paths:**")
+    for i, data_dir in enumerate(possible_paths, 1):
+        movies_csv = data_dir / "tmdb_5000_movies.csv"
+        credits_csv = data_dir / "tmdb_5000_credits.csv"
+        
+        st.write(f"{i}. `{data_dir}` - Movies: {movies_csv.exists()}, Credits: {credits_csv.exists()}")
+    
+    # List all CSV files in the project
+    st.write("**All CSV files found in the project:**")
+    try:
+        current_files = list(Path("/mount/src/recomender").rglob("*.csv"))
+        if not current_files:
+            current_files = list(Path.cwd().rglob("*.csv"))
+        
+        if current_files:
+            for file in current_files:
+                st.write(f"  - `{file}`")
+        else:
+            st.write("  - No CSV files found")
+    except Exception as e:
+        st.write(f"  - Error listing files: {e}")
     
     return None, None
 

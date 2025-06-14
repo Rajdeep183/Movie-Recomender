@@ -1,8 +1,24 @@
 import pandas as pd
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import re
+
+# Try to import scikit-learn with better error handling
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    SKLEARN_AVAILABLE = True
+except ImportError as e:
+    print(f"Error importing scikit-learn: {e}")
+    SKLEARN_AVAILABLE = False
+    # Create dummy classes for fallback
+    class TfidfVectorizer:
+        def __init__(self, *args, **kwargs):
+            pass
+        def fit_transform(self, texts):
+            return None
+    
+    def cosine_similarity(matrix):
+        return None
 
 class MovieRecommender:
     def __init__(self):
@@ -14,6 +30,11 @@ class MovieRecommender:
     def load_and_process_data(self, movies_path, credits_path):
         """Load and process the movie data"""
         try:
+            # Check if scikit-learn is available
+            if not SKLEARN_AVAILABLE:
+                print("Scikit-learn is not available. Cannot create recommendations.")
+                return False
+            
             # Load the data
             self.movies_df = pd.read_csv(movies_path)
             self.credits_df = pd.read_csv(credits_path)
@@ -66,6 +87,9 @@ class MovieRecommender:
     def get_recommendations(self, movie_title, num_recommendations=5):
         """Get movie recommendations"""
         try:
+            if not SKLEARN_AVAILABLE:
+                return []
+                
             if movie_title not in self.movie_titles:
                 return []
             

@@ -1,6 +1,4 @@
 import streamlit as st
-import plotly.express as px
-import plotly.graph_objects as go
 import pandas as pd
 
 def create_netflix_header():
@@ -260,58 +258,58 @@ def create_stats_cards_netflix(total_movies, selected_movie=None, recommendation
         )
 
 def create_recommendation_chart_netflix(recommendations):
-    """Create a modern chart with glassmorphism styling"""
+    """Create a simple text-based chart since plotly is removed"""
     if not recommendations:
         return None
     
-    titles = [rec['title'][:20] + '...' if len(rec['title']) > 20 else rec['title'] for rec in recommendations]
-    scores = [rec['similarity_score'] for rec in recommendations]
+    chart_html = """
+    <div style="
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(15px);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 20px 0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    ">
+        <h3 style="color: white; text-align: center; margin-bottom: 20px;">🎯 Recommendation Similarity Scores</h3>
+    """
     
-    fig = go.Figure(data=[
-        go.Bar(
-            x=titles,
-            y=scores,
-            marker=dict(
-                color=scores,
-                colorscale=[[0, '#e50914'], [0.5, '#ff6b6b'], [1, '#ff8e53']],
-                line=dict(color='rgba(255,255,255,0.2)', width=1)
-            ),
-            hovertemplate='<b>%{x}</b><br>Similarity: %{y:.1%}<extra></extra>',
-            texttemplate='%{y:.0%}',
-            textposition='outside'
-        )
-    ])
+    for rec in recommendations:
+        percentage = int(rec['similarity_score'] * 100)
+        chart_html += f"""
+        <div style="margin: 15px 0;">
+            <div style="color: white; margin-bottom: 5px; font-weight: 600;">
+                {rec['title'][:30]}{'...' if len(rec['title']) > 30 else ''}
+            </div>
+            <div style="
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                height: 20px;
+                position: relative;
+                overflow: hidden;
+            ">
+                <div style="
+                    background: linear-gradient(90deg, #e50914, #ff6b6b);
+                    height: 100%;
+                    width: {percentage}%;
+                    border-radius: 10px;
+                    transition: width 0.3s ease;
+                "></div>
+                <div style="
+                    position: absolute;
+                    top: 0;
+                    right: 10px;
+                    color: white;
+                    font-size: 12px;
+                    line-height: 20px;
+                    font-weight: 600;
+                ">{percentage}%</div>
+            </div>
+        </div>
+        """
     
-    fig.update_layout(
-        title=dict(
-            text="🎯 Recommendation Similarity Scores",
-            font=dict(size=20, color='white', family='Inter, Segoe UI'),
-            x=0.5
-        ),
-        xaxis=dict(
-            title="Movies",
-            titlefont=dict(color='rgba(255,255,255,0.8)', size=14),
-            tickfont=dict(color='rgba(255,255,255,0.7)', size=12),
-            gridcolor='rgba(255,255,255,0.1)',
-            showgrid=True
-        ),
-        yaxis=dict(
-            title="Similarity Score",
-            titlefont=dict(color='rgba(255,255,255,0.8)', size=14),
-            tickfont=dict(color='rgba(255,255,255,0.7)', size=12),
-            gridcolor='rgba(255,255,255,0.1)',
-            showgrid=True,
-            tickformat='.0%'
-        ),
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='white', family='Inter, Segoe UI'),
-        showlegend=False,
-        margin=dict(t=60, b=60, l=60, r=60),
-        height=400
-    )
-    
-    return fig
+    chart_html += "</div>"
+    return chart_html
 
 def create_featured_section():
     """Create a modern featured section with advanced styling"""

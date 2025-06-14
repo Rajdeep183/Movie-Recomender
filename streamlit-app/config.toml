@@ -1,0 +1,15 @@
+[settings]
+theme = "dark"
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+font = "sans serif"
+
+[layout]
+wideMode = true
+
+[server]
+port = 8501
+enableCORS = false
+
+[cache]
+maxSize = 1000
